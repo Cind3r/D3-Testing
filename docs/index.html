@@ -1,60 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>D3 Starter</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
-  <!-- D3 v7 via CDN (global `d3`) -->
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <meta charset="UTF-8">
+    <title>Datasaurus Dozen D3 Visualizations</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+        h1 { text-align: center; }
+        .chart-container { display: flex; gap: 40px; justify-content: center; margin-bottom: 60px; }
+        .chart { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #ccc; padding: 20px; }
+        .chart-title { text-align: center; margin-bottom: 10px; font-weight: bold; }
+        .superposition { margin: 0 auto; width: 700px; }
+    </style>
 </head>
 <body>
-  <h1>D3 Bar Chart</h1>
-  <!-- The chart will be injected into this container -->
-  <div id="chart"></div>
+    <h1>Datasaurus Dozen: D3 Visualizations</h1>
+    <p>
+        All datasets in the Datasaurus Dozen have the same means, standard deviations, and correlations, but vastly different structures.
+        Below, two visualization paradigms illustrate these differences: juxtaposition (side-by-side scatterplots) and superposition (overlaid bar chart).
+    </p>
 
-  <script>
-    const margin = { top: 30, right: 20, bottom: 40, left: 40 };
-    const width = 640, height = 400;
+    <div class="chart-container">
+        <div class="chart" id="scatter-dino">
+            <div class="chart-title">Scatterplot: Dino</div>
+            <svg width="300" height="300"></svg>
+        </div>
+        <div class="chart" id="scatter-circle">
+            <div class="chart-title">Scatterplot: Circle</div>
+            <svg width="300" height="300"></svg>
+        </div>
+    </div>
 
-    const svg = d3.select("#chart")
-      .append("svg")
-      .attr("viewBox", [0, 0, width, height]);
+    <div class="chart superposition" id="bar-superposition">
+        <div class="chart-title">Superposition: X Distribution (Dino vs Circle)</div>
+        <svg width="700" height="300"></svg>
+    </div>
 
-    d3.csv("data.csv", d3.autoType).then(data => {
-      // Scales
-      const x = d3.scaleBand()
-        .domain(data.map(d => d.name))
-        .range([margin.left, width - margin.right])
-        .padding(0.1);
+    <script>
+    // Load CSV data
+    d3.csv("data.csv").then(function(data) {
+        // Filter for two datasets: dino and circle
+        const dino = data.filter(d => d.dataset === "dino").map(d => ({x: +d.x, y: +d.y}));
+        const circle = data.filter(d => d.dataset === "circle").map(d => ({x: +d.x, y: +d.y}));
 
-      const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.value)]).nice()
-        .range([height - margin.bottom, margin.top]);
+        // Scatterplot settings
+        function drawScatter(selector, dataset, color) {
+            const svg = d3.select(selector + " svg");
+            const width = +svg.attr("width"), height = +svg.attr("height");
+            const margin = {top: 20, right: 20, bottom: 30, left: 30};
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
 
-      // Axes
-      svg.append("g")
-        .attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x));
+            const x = d3.scaleLinear()
+                .domain(d3.extent(dataset, d => d.x)).nice()
+                .range([0, plotWidth]);
+            const y = d3.scaleLinear()
+                .domain(d3.extent(dataset, d => d.y)).nice()
+                .range([plotHeight, 0]);
 
-      svg.append("g")
-        .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y));
+            const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-      // Bars
-      svg.append("g")
-        .selectAll("rect")
-        .data(data)
-        .join("rect")
-          .attr("x", d => x(d.name))
-          .attr("y", d => y(d.value))
-          .attr("width", x.bandwidth())
-          .attr("height", d => y(0) - y(d.value));
+            // Axes
+            g.append("g")
+                .attr("transform", `translate(0,${plotHeight})`)
+                .call(d3.axisBottom(x));
+            g.append("g")
+                .call(d3.axisLeft(y));
 
-      // Simple tooltip (title attribute)
-      svg.selectAll("rect").append("title")
-        .text(d => `${d.name}: ${d.value}`);
+            // Points
+            g.selectAll("circle")
+                .data(dataset)
+                .enter().append("circle")
+                .attr("cx", d => x(d.x))
+                .attr("cy", d => y(d.y))
+                .attr("r", 3)
+                .attr("fill", color)
+                .attr("opacity", 0.7);
+        }
+
+        drawScatter("#scatter-dino", dino, "#e41a1c");
+        drawScatter("#scatter-circle", circle, "#377eb8");
+
+        // Superposition: Overlaid bar chart of x distributions
+        const svgBar = d3.select("#bar-superposition svg");
+        const widthBar = +svgBar.attr("width"), heightBar = +svgBar.attr("height");
+        const marginBar = {top: 20, right: 20, bottom: 30, left: 40};
+        const plotWidthBar = widthBar - marginBar.left - marginBar.right;
+        const plotHeightBar = heightBar - marginBar.top - marginBar.bottom;
+
+        // Bin x values
+        const bins = d3.bin().domain([0, 100]).thresholds(20);
+        const dinoBins = bins(dino.map(d => d.x));
+        const circleBins = bins(circle.map(d => d.x));
+
+        const xBar = d3.scaleLinear()
+            .domain([0, 100])
+            .range([0, plotWidthBar]);
+        const yBar = d3.scaleLinear()
+            .domain([0, d3.max([...dinoBins, ...circleBins], d => d.length)])
+            .range([plotHeightBar, 0]);
+
+        const gBar = svgBar.append("g").attr("transform", `translate(${marginBar.left},${marginBar.top})`);
+
+        // Axes
+        gBar.append("g")
+            .attr("transform", `translate(0,${plotHeightBar})`)
+            .call(d3.axisBottom(xBar));
+        gBar.append("g")
+            .call(d3.axisLeft(yBar));
+
+        // Dino bars
+        gBar.selectAll(".bar-dino")
+            .data(dinoBins)
+            .enter().append("rect")
+            .attr("class", "bar-dino")
+            .attr("x", d => xBar(d.x0))
+            .attr("y", d => yBar(d.length))
+            .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
+            .attr("height", d => plotHeightBar - yBar(d.length))
+            .attr("fill", "#e41a1c")
+            .attr("opacity", 0.5);
+
+        // Circle bars (overlaid)
+        gBar.selectAll(".bar-circle")
+            .data(circleBins)
+            .enter().append("rect")
+            .attr("class", "bar-circle")
+            .attr("x", d => xBar(d.x0) + 2)
+            .attr("y", d => yBar(d.length))
+            .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
+            .attr("height", d => plotHeightBar - yBar(d.length))
+            .attr("fill", "#377eb8")
+            .attr("opacity", 0.5);
+
+        // Legend
+        const legend = svgBar.append("g").attr("transform", `translate(${widthBar - 180},${marginBar.top})`);
+        legend.append("rect").attr("x", 0).attr("y", 0).attr("width", 18).attr("height", 18).attr("fill", "#e41a1c").attr("opacity", 0.5);
+        legend.append("text").attr("x", 24).attr("y", 14).text("Dino").style("font-size", "14px");
+        legend.append("rect").attr("x", 0).attr("y", 24).attr("width", 18).attr("height", 18).attr("fill", "#377eb8").attr("opacity", 0.5);
+        legend.append("text").attr("x", 24).attr("y", 38).text("Circle").style("font-size", "14px");
     });
-  </script>
+    </script>
 </body>
 </html>
