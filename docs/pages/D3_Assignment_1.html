@@ -34,6 +34,53 @@
     .legend rect { stroke: #444; }
     .legend text { fill: #e0e0e0; }
     
+    /* Shape comparer specific styles */
+    input[type="range"] {
+        -webkit-appearance: none;
+        background: #444;
+        border-radius: 2px;
+        height: 4px;
+        outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        background: #a3a3ff;
+        border-radius: 50%;
+        cursor: pointer;
+        height: 16px;
+        width: 16px;
+    }
+    input[type="range"]::-moz-range-thumb {
+        background: #a3a3ff;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        height: 16px;
+        width: 16px;
+    }
+    input[type="checkbox"] {
+        accent-color: #a3a3ff;
+    }
+    
+    /* Density contour styles */
+    .density-contour {
+        fill: none;
+        stroke-width: 1.5;
+        opacity: 0.8;
+    }
+    
+    /* Convex hull styles */
+    .convex-hull {
+        fill-opacity: 0.1;
+        stroke-width: 2;
+        stroke-dasharray: 5,5;
+    }
+    
+    /* Shape comparer scatter points */
+    .shape-point {
+        transition: opacity 0.3s ease;
+    }
+    
     /* Navigation bar styling */
     .navbar {
         background: #23272f;
@@ -103,7 +150,7 @@
     <!-- ==========================================
          DATASET SELECTION CONTROLS
     ========================================== -->
-    <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 30px;">
+    <div style="display: flex; justify-content: center; align-items: flex-end; gap: 40px; margin-bottom: 30px;">
         <div>
             <label for="datasetA">Select Dataset A:</label>
             <select id="datasetA"></select>
@@ -112,37 +159,283 @@
             <label for="datasetB">Select Dataset B:</label>
             <select id="datasetB"></select>
         </div>
-    </div>
-
-    <!-- ==========================================
-         SCATTERPLOT VISUALIZATIONS
-    ========================================== -->
-    <div class="chart-container">
-        <div class="chart" id="scatter-A">
-            <div class="chart-title" id="title-A">Scatterplot: </div>
-            <svg width="300" height="300"></svg>
-        </div>
-        <div class="chart" id="scatter-B">
-            <div class="chart-title" id="title-B">Scatterplot: </div>
-            <svg width="300" height="300"></svg>
+        <div>
+            <button id="toggle-negative-x" style="background: #23272f; color: #e0e0e0; border: 1px solid #444; border-radius: 4px; padding: 8px 16px; font-size: 15px; cursor: pointer;">Change B Plot to Positive</button>
         </div>
     </div>
 
     <!-- ==========================================
-         SUPERPOSITION BAR CHART & CONTROLS
+         SCATTERPLOT AND HISTOGRAM VISUALIZATIONS
     ========================================== -->
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 40px;">
-        <button id="toggle-negative-x" style="background: #23272f; color: #e0e0e0; border: 1px solid #444; border-radius: 4px; padding: 8px 16px; font-size: 15px; cursor: pointer; margin-bottom: 10px;">Change B Plot to Positive</button>
-        <div class="chart superposition" id="bar-superposition">
-            <div class="chart-title" id="title-superposition">Superposition: X Distribution</div>
-            <svg width="700" height="300"></svg>
+    <!-- Centered visualization wrapper -->
+    <div style="display: flex; justify-content: center; width: 100%; padding: 0 40px; box-sizing: border-box;">
+        <div style="max-width: 1400px; width: 100%; display: flex; flex-direction: column; gap: 40px;">
+            
+            <!-- Main visualizations container -->
+            <div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px; margin-bottom: 40px; width: 100%;">
+                <!-- Scatterplot A -->
+                <div class="chart" id="scatter-A" style="flex: 1; max-width: 350px;">
+                    <div class="chart-title" id="title-A">Scatterplot: </div>
+                    <svg width="350" height="300"></svg>
+                </div>
+                
+                <!-- Scatterplot B -->
+                <div class="chart" id="scatter-B" style="flex: 1; max-width: 350px;">
+                    <div class="chart-title" id="title-B">Scatterplot: </div>
+                    <svg width="350" height="300"></svg>
+                </div>
+                
+                <!-- Divider Line -->
+                <div style="width: 3px; background: #606060; height: 320px; min-height: 320px; flex-shrink: 0; align-self: center; border-radius: 1px;"></div>
+                
+                <!-- Histogram container -->
+                <div style="flex: 2; max-width: 700px;">
+                    <div class="chart superposition" id="bar-superposition">
+                        <div class="chart-title" id="title-superposition">Superposition: X Distribution</div>
+                        <svg width="700" height="300"></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+                 SHAPE COMPARER VISUALIZATION
+            ========================================== -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 40px;">
+                <h2 style="color: #fafafa; margin: 20px 0;">Interactive Shape Comparer</h2>
+                
+                <!-- Single row with three flex items: Controls | Shape | Density -->
+                <div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px; width: 100%;">
+                    
+                    <!-- Controls Panel - Left (smaller flex item) -->
+                    <div style="flex: 0 0 300px; min-width: 300px; max-width: 300px; display: flex; flex-direction: column; gap: 15px;">
+                        <!-- Description Text -->
+                        <p style="color: #e0e0e0; text-align: left; margin: 0; font-size: 15px; line-height: 1.4;">
+                            Compare the datasets with visualization layers: scatter points, density contours, and convex hulls. 
+                            Use the blend slider to cross-fade between datasets.
+                        </p>
+
+                        <!-- Visualization Layer Toggles -->
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <h4 style="color: #fafafa; margin: 0 0 8px 0; font-size: 16px;">Layers:</h4>
+                            <label style="color: #e0e0e0; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                <input type="checkbox" id="toggle-points" checked style="margin: 0;">
+                                Show Points
+                            </label>
+                            <label style="color: #e0e0e0; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                <input type="checkbox" id="toggle-hull" checked style="margin: 0;">
+                                Convex Hull
+                            </label>
+                        </div>
+
+                        <!-- Blend and Bandwidth Controls -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <h4 style="color: #fafafa; margin: 0 0 8px 0; font-size: 16px;">Controls:</h4>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label for="blend-slider" style="color: #e0e0e0; font-size: 14px;">Blend A→B:</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="range" id="blend-slider" min="0" max="100" value="50" style="width: 160px;">
+                                    <span id="blend-value" style="color: #e0e0e0; width: 30px; font-size: 13px;">50%</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label for="bandwidth-slider" style="color: #e0e0e0; font-size: 14px;">Density Bandwidth:</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="range" id="bandwidth-slider" min="1" max="20" value="8" style="width: 160px;">
+                                    <span id="bandwidth-value" style="color: #e0e0e0; width: 20px; font-size: 13px;">8</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Procrustes Score Display -->
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <h4 style="color: #fafafa; margin: 0; font-size: 16px;">Similarity:</h4>
+                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #e0e0e0; font-size: 13px;">Procrustes:</span>
+                                    <span id="procrustes-score" style="color: #ffd700; font-size: 14px; font-weight: bold;">Calculating...</span>
+                                </div>
+                                <span style="color: #a0a0a0; font-size: 11px;">(lower = more similar)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shape Comparer Visualization - Center (fixed size) -->
+                    <div class="chart" id="shape-comparer" style="flex: 0 0 500px; width: 500px;">
+                        <div class="chart-title" id="title-shape-comparer">Shape Comparison</div>
+                        <svg width="500" height="400"></svg>
+                    </div>
+                    
+                    <!-- Density Contour Visualization - Right (fixed size) -->
+                    <div class="chart" id="density-contour" style="flex: 0 0 500px; width: 500px;">
+                        <div class="chart-title" id="title-density-contour">Density Contours</div>
+                        <svg width="500" height="400"></svg>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+
     <!-- ==========================================
-         JAVASCRIPT: DATA PROCESSING & VISUALIZATION
+         JAVASCRIPT: NAVIGATION & PAGE INTERACTIONS 
     ========================================== -->
+
     <script>
+    /* ==========================================
+       SHAPE COMPARER: UTILITY FUNCTIONS
+    ========================================== */
+    
+    // 2D Kernel Density Estimation with Gaussian kernels
+    function kernelDensityEstimation(points, bandwidth, gridSize = 30) {
+        const xExtent = d3.extent(points, d => d.x);
+        const yExtent = d3.extent(points, d => d.y);
+        
+        // Expand extents slightly for padding
+        const xPadding = (xExtent[1] - xExtent[0]) * 0.1;
+        const yPadding = (yExtent[1] - yExtent[0]) * 0.1;
+        xExtent[0] -= xPadding; xExtent[1] += xPadding;
+        yExtent[0] -= yPadding; yExtent[1] += yPadding;
+        
+        const xStep = (xExtent[1] - xExtent[0]) / (gridSize - 1);
+        const yStep = (yExtent[1] - yExtent[0]) / (gridSize - 1);
+        
+        const grid = [];
+        const h2 = bandwidth * bandwidth;
+        const normalizationFactor = 1 / (points.length * 2 * Math.PI * h2);
+        
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const x = xExtent[0] + i * xStep;
+                const y = yExtent[0] + j * yStep;
+                
+                let density = 0;
+                points.forEach(point => {
+                    const dx = x - point.x;
+                    const dy = y - point.y;
+                    const dist2 = dx * dx + dy * dy;
+                    density += Math.exp(-dist2 / (2 * h2));
+                });
+                
+                density *= normalizationFactor;
+                grid.push({x, y, density});
+            }
+        }
+        
+        // Scale densities to make them more visible
+        const maxDensity = d3.max(grid, d => d.density);
+        if (maxDensity > 0) {
+            grid.forEach(d => {
+                d.density = d.density / maxDensity; // Normalize to [0, 1]
+            });
+        }
+        
+        return {grid, gridSize, xExtent, yExtent};
+    }
+    
+    // Calculate convex hull using Graham scan
+    function convexHull(points) {
+        if (points.length < 3) return points;
+        
+        // Find the bottom-most point (or left most in case of tie)
+        let start = 0;
+        for (let i = 1; i < points.length; i++) {
+            if (points[i].y < points[start].y || 
+                (points[i].y === points[start].y && points[i].x < points[start].x)) {
+                start = i;
+            }
+        }
+        
+        // Sort points by polar angle with respect to start point
+        const startPoint = points[start];
+        const sorted = points.filter((_, i) => i !== start).sort((a, b) => {
+            const angleA = Math.atan2(a.y - startPoint.y, a.x - startPoint.x);
+            const angleB = Math.atan2(b.y - startPoint.y, b.x - startPoint.x);
+            if (angleA === angleB) {
+                // If same angle, closer point comes first
+                const distA = Math.hypot(a.x - startPoint.x, a.y - startPoint.y);
+                const distB = Math.hypot(b.x - startPoint.x, b.y - startPoint.y);
+                return distA - distB;
+            }
+            return angleA - angleB;
+        });
+        
+        const hull = [startPoint];
+        
+        for (let i = 0; i < sorted.length; i++) {
+            // Remove points that make clockwise turn
+            while (hull.length > 1 && 
+                   crossProduct(hull[hull.length-2], hull[hull.length-1], sorted[i]) <= 0) {
+                hull.pop();
+            }
+            hull.push(sorted[i]);
+        }
+        
+        return hull;
+    }
+    
+    function crossProduct(o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    }
+    
+    // Procrustes Analysis
+    function procrustesAnalysis(setA, setB) {
+        // Center both datasets
+        const centerA = {
+            x: d3.mean(setA, d => d.x),
+            y: d3.mean(setA, d => d.y)
+        };
+        const centerB = {
+            x: d3.mean(setB, d => d.x),
+            y: d3.mean(setB, d => d.y)
+        };
+        
+        const centeredA = setA.map(p => ({x: p.x - centerA.x, y: p.y - centerA.y}));
+        const centeredB = setB.map(p => ({x: p.x - centerB.x, y: p.y - centerB.y}));
+        
+        // Scale to unit size
+        const scaleA = Math.sqrt(d3.sum(centeredA, d => d.x * d.x + d.y * d.y) / centeredA.length);
+        const scaleB = Math.sqrt(d3.sum(centeredB, d => d.x * d.x + d.y * d.y) / centeredB.length);
+        
+        const scaledA = centeredA.map(p => ({x: p.x / scaleA, y: p.y / scaleA}));
+        const scaledB = centeredB.map(p => ({x: p.x / scaleB, y: p.y / scaleB}));
+        
+        // Find optimal rotation
+        let numerator = 0, denominator = 0;
+        const minLen = Math.min(scaledA.length, scaledB.length);
+        
+        for (let i = 0; i < minLen; i++) {
+            numerator += scaledA[i].x * scaledB[i].y - scaledA[i].y * scaledB[i].x;
+            denominator += scaledA[i].x * scaledB[i].x + scaledA[i].y * scaledB[i].y;
+        }
+        
+        const theta = Math.atan2(numerator, denominator);
+        const cosTheta = Math.cos(theta);
+        const sinTheta = Math.sin(theta);
+        
+        // Apply rotation to B
+        const rotatedB = scaledB.map(p => ({
+            x: p.x * cosTheta - p.y * sinTheta,
+            y: p.x * sinTheta + p.y * cosTheta
+        }));
+        
+        // Calculate disparity
+        let disparity = 0;
+        for (let i = 0; i < minLen; i++) {
+            const dx = scaledA[i].x - rotatedB[i].x;
+            const dy = scaledA[i].y - rotatedB[i].y;
+            disparity += dx * dx + dy * dy;
+        }
+        
+        return {
+            disparity: Math.sqrt(disparity / minLen),
+            rotation: theta,
+            scaleA,
+            scaleB,
+            centerA,
+            centerB
+        };
+    }
+    
     /* ==========================================
        DATA LOADING & INITIALIZATION
     ========================================== */
@@ -171,6 +464,703 @@
         // Set default selections
         d3.select("#datasetA").property("value", "dino");
         d3.select("#datasetB").property("value", "circle");
+
+        /* ==========================================
+           SHAPE COMPARER VISUALIZATION FUNCTION
+        ========================================== */
+        function drawShapeComparer() {
+            const svg = d3.select("#shape-comparer svg");
+            const existingG = svg.select("g");
+            
+            const width = +svg.attr("width");
+            const height = +svg.attr("height");
+            const margin = {top: 30, right: 30, bottom: 40, left: 40};
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+            
+            // Get selected datasets from main dropdowns
+            const nameA = d3.select("#datasetA").property("value");
+            const nameB = d3.select("#datasetB").property("value");
+            const datasetA = data.filter(d => d.dataset === nameA).map(d => ({x: +d.x, y: +d.y}));
+            const datasetB = data.filter(d => d.dataset === nameB).map(d => ({x: +d.x, y: +d.y}));
+            
+            // Track previous datasets for smooth transitions
+            if (!window.shapeComparerPrevious) {
+                window.shapeComparerPrevious = {
+                    nameA: null,
+                    nameB: null,
+                    datasetA: [],
+                    datasetB: []
+                };
+            }
+            
+            // Detect dataset changes
+            const datasetAChanged = window.shapeComparerPrevious.nameA !== nameA;
+            const datasetBChanged = window.shapeComparerPrevious.nameB !== nameB;
+            
+            // Get control values
+            const showPoints = d3.select("#toggle-points").property("checked");
+            const showHull = d3.select("#toggle-hull").property("checked");
+            const blendValue = +d3.select("#blend-slider").property("value") / 100;
+            const bandwidth = +d3.select("#bandwidth-slider").property("value");
+            
+            // Calculate Procrustes analysis
+            const procrustes = procrustesAnalysis(datasetA, datasetB);
+            d3.select("#procrustes-score")
+                .transition()
+                .duration(300)
+                .tween("text", function() {
+                    const currentText = this.textContent;
+                    const currentValue = parseFloat(currentText) || 0;
+                    const interpolator = d3.interpolateNumber(currentValue, procrustes.disparity);
+                    return function(t) {
+                        this.textContent = interpolator(t).toFixed(4);
+                    };
+                });
+            
+            // Create scales using global extents
+            const xScale = d3.scaleLinear()
+                .domain(globalX).nice()
+                .range([0, plotWidth]);
+            
+            const yScale = d3.scaleLinear()
+                .domain(globalY).nice()
+                .range([plotHeight, 0]);
+            
+            let g;
+            if (existingG.empty()) {
+                svg.selectAll("*").remove();
+                g = svg.append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+                // Add axes
+                g.append("g")
+                    .attr("class", "x-axis")
+                    .attr("transform", `translate(0,${plotHeight})`)
+                    .call(d3.axisBottom(xScale));
+                
+                g.append("g")
+                    .attr("class", "y-axis")
+                    .call(d3.axisLeft(yScale));
+            } else {
+                g = existingG;
+            }
+            
+            // Colors for datasets
+            const colorA = getColor(datasetNames.indexOf(nameA));
+            const colorB = getColor(datasetNames.indexOf(nameB));
+            
+            // Remove old elements for smooth transition
+            g.selectAll(".density-contour").remove();
+            g.selectAll(".legend").remove();
+            
+            // For hull transitions: only remove if we're not transitioning or it's initial load
+            if (!datasetAChanged && !datasetBChanged) {
+                g.selectAll(".convex-hull").remove();
+            }
+            
+            // For points: only remove if it's the initial draw
+            if (!window.shapeComparerPrevious || (!window.shapeComparerPrevious.nameA && !window.shapeComparerPrevious.nameB)) {
+                g.selectAll(".shape-point").remove();
+            }
+            
+            // Draw convex hulls with smooth shape animation
+            if (showHull) {
+                const hullA = convexHull(datasetA);
+                const hullB = convexHull(datasetB);
+                
+                const lineGen = d3.line()
+                    .x(d => xScale(d.x))
+                    .y(d => yScale(d.y))
+                    .curve(d3.curveLinearClosed);
+                
+                // Hull A with smooth transition
+                if (hullA.length >= 3) {
+                    let hullAPath = g.select(".hull-a");
+                    
+                    if (hullAPath.empty()) {
+                        // Create new hull
+                        hullAPath = g.append("path")
+                            .attr("class", "convex-hull hull-a");
+                    }
+                    
+                    if (datasetAChanged && hullAPath.datum()) {
+                        // Animate transition to new shape
+                        hullAPath
+                            .transition()
+                            .duration(400)
+                            .attr("fill-opacity", 0)
+                            .attr("stroke-opacity", 0)
+                            .on("end", function() {
+                                d3.select(this)
+                                    .datum(hullA)
+                                    .attr("d", lineGen)
+                                    .attr("fill", colorA)
+                                    .attr("stroke", colorA)
+                                    .transition()
+                                    .duration(400)
+                                    .attr("fill-opacity", (1 - blendValue) * 0.1)
+                                    .attr("stroke-opacity", (1 - blendValue) * 0.8);
+                            });
+                    } else {
+                        // Initial creation or non-dataset changes
+                        hullAPath
+                            .datum(hullA)
+                            .attr("d", lineGen)
+                            .attr("fill", colorA)
+                            .attr("stroke", colorA);
+                            
+                        if (!hullAPath.attr("fill-opacity")) {
+                            // Initial fade-in
+                            hullAPath
+                                .attr("fill-opacity", 0)
+                                .attr("stroke-opacity", 0)
+                                .transition()
+                                .duration(500)
+                                .attr("fill-opacity", (1 - blendValue) * 0.1)
+                                .attr("stroke-opacity", (1 - blendValue) * 0.8);
+                        } else {
+                            // Just update opacity/color
+                            hullAPath
+                                .transition()
+                                .duration(300)
+                                .attr("fill-opacity", (1 - blendValue) * 0.1)
+                                .attr("stroke-opacity", (1 - blendValue) * 0.8);
+                        }
+                    }
+                }
+                
+                // Hull B with smooth transition  
+                if (hullB.length >= 3) {
+                    let hullBPath = g.select(".hull-b");
+                    
+                    if (hullBPath.empty()) {
+                        // Create new hull
+                        hullBPath = g.append("path")
+                            .attr("class", "convex-hull hull-b");
+                    }
+                    
+                    if (datasetBChanged && hullBPath.datum()) {
+                        // Animate transition to new shape
+                        hullBPath
+                            .transition()
+                            .duration(400)
+                            .attr("fill-opacity", 0)
+                            .attr("stroke-opacity", 0)
+                            .on("end", function() {
+                                d3.select(this)
+                                    .datum(hullB)
+                                    .attr("d", lineGen)
+                                    .attr("fill", colorB)
+                                    .attr("stroke", colorB)
+                                    .transition()
+                                    .duration(400)
+                                    .attr("fill-opacity", blendValue * 0.1)
+                                    .attr("stroke-opacity", blendValue * 0.8);
+                            });
+                    } else {
+                        // Initial creation or non-dataset changes
+                        hullBPath
+                            .datum(hullB)
+                            .attr("d", lineGen)
+                            .attr("fill", colorB)
+                            .attr("stroke", colorB);
+                            
+                        if (!hullBPath.attr("fill-opacity")) {
+                            // Initial fade-in
+                            hullBPath
+                                .attr("fill-opacity", 0)
+                                .attr("stroke-opacity", 0)
+                                .transition()
+                                .duration(500)
+                                .attr("fill-opacity", blendValue * 0.1)
+                                .attr("stroke-opacity", blendValue * 0.8);
+                        } else {
+                            // Just update opacity/color
+                            hullBPath
+                                .transition()
+                                .duration(300)
+                                .attr("fill-opacity", blendValue * 0.1)
+                                .attr("stroke-opacity", blendValue * 0.8);
+                        }
+                    }
+                }
+            } else {
+                // Hide hulls with animation when showHull is false
+                g.selectAll(".convex-hull")
+                    .transition()
+                    .duration(300)
+                    .attr("fill-opacity", 0)
+                    .attr("stroke-opacity", 0)
+                    .remove();
+            }
+            
+            // Draw points with smooth transitions
+            if (showPoints) {
+                // Points for dataset A with smooth position and color transitions
+                let pointsA = g.selectAll(".point-a");
+                
+                if (datasetAChanged && pointsA.size() > 0) {
+                    // Transition existing points to new positions and colors
+                    const currentData = pointsA.data();
+                    const newData = datasetA;
+                    
+                    // Handle case where we have more or fewer points
+                    if (newData.length > currentData.length) {
+                        // Add new points for additional data - start from center and fade in
+                        for (let i = currentData.length; i < newData.length; i++) {
+                            g.append("circle")
+                                .datum(newData[i])
+                                .attr("class", "point-a shape-point")
+                                .attr("cx", xScale((globalX[0] + globalX[1]) / 2))
+                                .attr("cy", yScale((globalY[0] + globalY[1]) / 2))
+                                .attr("r", 0)
+                                .attr("fill", colorA)
+                                .attr("opacity", 0);
+                        }
+                    }
+                    
+                    // Update all points (existing + new) with data binding
+                    pointsA = g.selectAll(".point-a")
+                        .data(newData, (d, i) => `a-${i}`);
+                    
+                    // Transition all points to new positions and colors
+                    pointsA.transition()
+                        .duration(800)
+                        .ease(d3.easeQuadInOut)
+                        .attr("cx", d => xScale(d.x))
+                        .attr("cy", d => yScale(d.y))
+                        .attr("fill", colorA)
+                        .attr("r", 3)
+                        .attr("opacity", (1 - blendValue) * 0.8);
+                    
+                    // Remove excess points if new dataset is smaller
+                    pointsA.exit()
+                        .transition()
+                        .duration(400)
+                        .attr("r", 0)
+                        .attr("opacity", 0)
+                        .remove();
+                        
+                } else {
+                    // Initial draw or control changes only
+                    pointsA = pointsA.data(datasetA, (d, i) => `a-${i}`);
+                    
+                    pointsA.enter()
+                        .append("circle")
+                        .attr("class", "point-a shape-point")
+                        .attr("cx", d => xScale(d.x))
+                        .attr("cy", d => yScale(d.y))
+                        .attr("r", 0)
+                        .attr("fill", colorA)
+                        .attr("opacity", 0)
+                        .transition()
+                        .duration(400)
+                        .delay((d, i) => i * 2)
+                        .attr("r", 3)
+                        .attr("opacity", (1 - blendValue) * 0.8);
+                    
+                    pointsA.transition()
+                        .duration(300)
+                        .attr("fill", colorA)
+                        .attr("opacity", (1 - blendValue) * 0.8);
+                    
+                    pointsA.exit()
+                        .transition()
+                        .duration(200)
+                        .attr("r", 0)
+                        .attr("opacity", 0)
+                        .remove();
+                }
+                
+                // Points for dataset B with smooth position and color transitions
+                let pointsB = g.selectAll(".point-b");
+                
+                if (datasetBChanged && pointsB.size() > 0) {
+                    // Transition existing points to new positions and colors
+                    const currentData = pointsB.data();
+                    const newData = datasetB;
+                    
+                    // Handle case where we have more or fewer points
+                    if (newData.length > currentData.length) {
+                        // Add new points for additional data - start from center and fade in
+                        for (let i = currentData.length; i < newData.length; i++) {
+                            g.append("circle")
+                                .datum(newData[i])
+                                .attr("class", "point-b shape-point")
+                                .attr("cx", xScale((globalX[0] + globalX[1]) / 2))
+                                .attr("cy", yScale((globalY[0] + globalY[1]) / 2))
+                                .attr("r", 0)
+                                .attr("fill", colorB)
+                                .attr("opacity", 0);
+                        }
+                    }
+                    
+                    // Update all points (existing + new) with data binding
+                    pointsB = g.selectAll(".point-b")
+                        .data(newData, (d, i) => `b-${i}`);
+                    
+                    // Transition all points to new positions and colors
+                    pointsB.transition()
+                        .duration(800)
+                        .ease(d3.easeQuadInOut)
+                        .attr("cx", d => xScale(d.x))
+                        .attr("cy", d => yScale(d.y))
+                        .attr("fill", colorB)
+                        .attr("r", 3)
+                        .attr("opacity", blendValue * 0.8);
+                    
+                    // Remove excess points if new dataset is smaller
+                    pointsB.exit()
+                        .transition()
+                        .duration(400)
+                        .attr("r", 0)
+                        .attr("opacity", 0)
+                        .remove();
+                        
+                } else {
+                    // Initial draw or control changes only
+                    pointsB = pointsB.data(datasetB, (d, i) => `b-${i}`);
+                    
+                    pointsB.enter()
+                        .append("circle")
+                        .attr("class", "point-b shape-point")
+                        .attr("cx", d => xScale(d.x))
+                        .attr("cy", d => yScale(d.y))
+                        .attr("r", 0)
+                        .attr("fill", colorB)
+                        .attr("opacity", 0)
+                        .transition()
+                        .duration(400)
+                        .delay((d, i) => i * 2)
+                        .attr("r", 3)
+                        .attr("opacity", blendValue * 0.8);
+                    
+                    pointsB.transition()
+                        .duration(300)
+                        .attr("fill", colorB)
+                        .attr("opacity", blendValue * 0.8);
+                    
+                    pointsB.exit()
+                        .transition()
+                        .duration(200)
+                        .attr("r", 0)
+                        .attr("opacity", 0)
+                        .remove();
+                }
+            } else {
+                // Hide points with animation when showPoints is false
+                g.selectAll(".shape-point")
+                    .transition()
+                    .duration(300)
+                    .attr("r", 0)
+                    .attr("opacity", 0)
+                    .remove();
+            }
+            
+            // Update title with animation
+            d3.select("#title-shape-comparer")
+                .transition()
+                .duration(300)
+                .style("opacity", 0)
+                .transition()
+                .duration(300)
+                .style("opacity", 1)
+                .text(`Shape Comparison: ${nameA} vs ${nameB}`);
+                
+            // Update previous dataset tracking for next transition
+            window.shapeComparerPrevious = {
+                nameA: nameA,
+                nameB: nameB,
+                datasetA: datasetA,
+                datasetB: datasetB
+            };
+        }
+
+        /* ==========================================
+           DENSITY CONTOUR VISUALIZATION FUNCTION
+        ========================================== */
+        function drawDensityContour() {
+            const svg = d3.select("#density-contour svg");
+            const existingG = svg.select("g");
+            
+            const width = +svg.attr("width");
+            const height = +svg.attr("height");
+            const margin = {top: 30, right: 30, bottom: 40, left: 40};
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+            
+            // Get selected datasets from main dropdowns
+            const nameA = d3.select("#datasetA").property("value");
+            const nameB = d3.select("#datasetB").property("value");
+            const datasetA = data.filter(d => d.dataset === nameA).map(d => ({x: +d.x, y: +d.y}));
+            const datasetB = data.filter(d => d.dataset === nameB).map(d => ({x: +d.x, y: +d.y}));
+            
+            // Track previous datasets for smooth transitions
+            if (!window.densityContourPrevious) {
+                window.densityContourPrevious = {
+                    nameA: null,
+                    nameB: null,
+                    currentDatasetA: [],
+                    currentDatasetB: []
+                };
+            }
+            
+            // Detect dataset changes
+            const datasetAChanged = window.densityContourPrevious.nameA !== nameA;
+            const datasetBChanged = window.densityContourPrevious.nameB !== nameB;
+            
+            // Get control values
+            const blendValue = +d3.select("#blend-slider").property("value") / 100;
+            const bandwidth = +d3.select("#bandwidth-slider").property("value");
+            
+            // Create scales using global extents
+            const xScale = d3.scaleLinear()
+                .domain(globalX).nice()
+                .range([0, plotWidth]);
+            
+            const yScale = d3.scaleLinear()
+                .domain(globalY).nice()
+                .range([plotHeight, 0]);
+            
+            let g;
+            if (existingG.empty()) {
+                svg.selectAll("*").remove();
+                g = svg.append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+                // Add axes
+                g.append("g")
+                    .attr("class", "x-axis")
+                    .attr("transform", `translate(0,${plotHeight})`)
+                    .call(d3.axisBottom(xScale));
+                
+                g.append("g")
+                    .attr("class", "y-axis")
+                    .call(d3.axisLeft(yScale));
+            } else {
+                g = existingG;
+            }
+            
+            // Colors for datasets
+            const colorA = getColor(datasetNames.indexOf(nameA));
+            const colorB = getColor(datasetNames.indexOf(nameB));
+            
+            // Remove old elements for smooth transition
+            g.selectAll(".legend").remove();
+            
+            // Function to draw contours from a dataset
+            function drawContoursFromData(currentDataA, currentDataB, isInitialDraw = false) {
+                // Clear existing contours
+                g.selectAll(".density-contour").remove();
+                
+                if (currentDataA.length === 0 || currentDataB.length === 0) return;
+                
+                // Calculate density for current datasets
+                const densityA = kernelDensityEstimation(currentDataA, bandwidth, 30);
+                const densityB = kernelDensityEstimation(currentDataB, bandwidth, 30);
+                
+                // Check if D3 contours is available, fallback to circles if not
+                if (typeof d3.contours === 'function') {
+                    // Create contour generators
+                    const contours = d3.contours()
+                        .size([densityA.gridSize, densityA.gridSize])
+                        .thresholds(6);
+                    
+                    // Convert grid to 1D array for contours
+                    const valuesA = densityA.grid.map(d => d.density);
+                    const valuesB = densityB.grid.map(d => d.density);
+                    
+                    // Get contour lines
+                    const contoursA = contours(valuesA);
+                    const contoursB = contours(valuesB);
+                    
+                    // Scale transform for mapping contour coordinates to plot coordinates
+                    const xContourScale = d3.scaleLinear()
+                        .domain([0, densityA.gridSize - 1])
+                        .range([xScale(densityA.xExtent[0]), xScale(densityA.xExtent[1])]);
+                    
+                    const yContourScale = d3.scaleLinear()
+                        .domain([0, densityA.gridSize - 1])
+                        .range([yScale(densityA.yExtent[1]), yScale(densityA.yExtent[0])]);
+                    
+                    // Custom path generator for contours
+                    const contourPath = d3.geoPath().projection(
+                        d3.geoTransform({
+                            point: function(x, y) {
+                                this.stream.point(xContourScale(x), yContourScale(y));
+                            }
+                        })
+                    );
+                    
+                    // Draw contours for dataset A
+                    contoursA.forEach((contour, i) => {
+                        if (contour.value > 0) {
+                            const path = g.append("path")
+                                .attr("class", "density-contour density-a")
+                                .datum(contour)
+                                .attr("d", contourPath)
+                                .attr("fill", "none")
+                                .attr("stroke", colorA)
+                                .attr("stroke-width", 2);
+                            
+                            if (isInitialDraw) {
+                                path.attr("opacity", 0)
+                                    .transition()
+                                    .delay(i * 50) // Stagger the fade-in
+                                    .duration(600)
+                                    .ease(d3.easeQuadOut)
+                                    .attr("opacity", (1 - blendValue) * 0.8);
+                            } else {
+                                path.attr("opacity", (1 - blendValue) * 0.8);
+                            }
+                        }
+                    });
+                    
+                    // Draw contours for dataset B
+                    contoursB.forEach((contour, i) => {
+                        if (contour.value > 0) {
+                            const path = g.append("path")
+                                .attr("class", "density-contour density-b")
+                                .datum(contour)
+                                .attr("d", contourPath)
+                                .attr("fill", "none")
+                                .attr("stroke", colorB)
+                                .attr("stroke-width", 2);
+                            
+                            if (isInitialDraw) {
+                                path.attr("opacity", 0)
+                                    .transition()
+                                    .delay(i * 50) // Stagger the fade-in
+                                    .duration(600)
+                                    .ease(d3.easeQuadOut)
+                                    .attr("opacity", blendValue * 0.8);
+                            } else {
+                                path.attr("opacity", blendValue * 0.8);
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Initialize current datasets if they don't exist or if it's the first time
+            if (window.densityContourPrevious.currentDatasetA.length === 0 && window.densityContourPrevious.currentDatasetB.length === 0) {
+                window.densityContourPrevious.currentDatasetA = datasetA.slice();
+                window.densityContourPrevious.currentDatasetB = datasetB.slice();
+                
+                // Check if this is the initial page load by looking for histogram animation state
+                const isInitialLoad = !window.histogramAnimationComplete;
+                
+                if (isInitialLoad) {
+                    // Wait for histogram animation to complete, then fade in
+                    const checkHistogramComplete = () => {
+                        if (window.histogramAnimationComplete) {
+                            setTimeout(() => {
+                                drawContoursFromData(datasetA, datasetB, true);
+                            }, 300); // Small delay after histogram
+                        } else {
+                            setTimeout(checkHistogramComplete, 100);
+                        }
+                    };
+                    checkHistogramComplete();
+                } else {
+                    drawContoursFromData(datasetA, datasetB);
+                }
+            } else if (datasetAChanged || datasetBChanged) {
+                // Animate point-by-point transition
+                const oldDataA = window.densityContourPrevious.currentDatasetA.slice();
+                const oldDataB = window.densityContourPrevious.currentDatasetB.slice();
+                const newDataA = datasetA.slice();
+                const newDataB = datasetB.slice();
+                
+                // Ensure both datasets have the same number of points for smooth transition
+                const maxLength = Math.max(oldDataA.length, newDataA.length, oldDataB.length, newDataB.length);
+                
+                // Pad shorter datasets by repeating points
+                while (oldDataA.length < maxLength) oldDataA.push(oldDataA[oldDataA.length % oldDataA.length] || {x: 0, y: 0});
+                while (newDataA.length < maxLength) newDataA.push(newDataA[newDataA.length % newDataA.length] || {x: 0, y: 0});
+                while (oldDataB.length < maxLength) oldDataB.push(oldDataB[oldDataB.length % oldDataB.length] || {x: 0, y: 0});
+                while (newDataB.length < maxLength) newDataB.push(newDataB[newDataB.length % newDataB.length] || {x: 0, y: 0});
+                
+                // Create working copies for animation
+                let currentDataA = oldDataA.slice();
+                let currentDataB = oldDataB.slice();
+                
+                // Animation parameters - Smoother animation
+                const totalSteps = Math.min(maxLength, 80); // Increased steps for smoother animation
+                const stepDelay = 20; // Faster steps (50fps) for smoother motion
+                const pointsPerStep = Math.max(1, Math.ceil(maxLength / totalSteps));
+                
+                let step = 0;
+                function animateStep() {
+                    if (step >= totalSteps) {
+                        // Animation complete, ensure final state
+                        window.densityContourPrevious.currentDatasetA = datasetA.slice();
+                        window.densityContourPrevious.currentDatasetB = datasetB.slice();
+                        window.densityContourPrevious.nameA = nameA;
+                        window.densityContourPrevious.nameB = nameB;
+                        drawContoursFromData(datasetA, datasetB);
+                        return;
+                    }
+                    
+                    // Use smooth interpolation instead of direct replacement for smoother animation
+                    const t = step / totalSteps; // Progress from 0 to 1
+                    const easeT = d3.easeQuadInOut(t); // Apply easing for smoother motion
+                    
+                    // Interpolate all points gradually
+                    for (let i = 0; i < maxLength; i++) {
+                        if (datasetAChanged && i < newDataA.length && i < oldDataA.length) {
+                            currentDataA[i] = {
+                                x: oldDataA[i].x + easeT * (newDataA[i].x - oldDataA[i].x),
+                                y: oldDataA[i].y + easeT * (newDataA[i].y - oldDataA[i].y)
+                            };
+                        }
+                        if (datasetBChanged && i < newDataB.length && i < oldDataB.length) {
+                            currentDataB[i] = {
+                                x: oldDataB[i].x + easeT * (newDataB[i].x - oldDataB[i].x),
+                                y: oldDataB[i].y + easeT * (newDataB[i].y - oldDataB[i].y)
+                            };
+                        }
+                    }
+                    
+                    // Redraw contours with interpolated data
+                    drawContoursFromData(
+                        currentDataA.slice(0, datasetA.length),
+                        currentDataB.slice(0, datasetB.length)
+                    );
+                    
+                    step++;
+                    requestAnimationFrame(() => {
+                        setTimeout(animateStep, stepDelay);
+                    });
+                }
+                
+                // Start animation
+                animateStep();
+            } else {
+                // No dataset change, just redraw with current data
+                drawContoursFromData(
+                    window.densityContourPrevious.currentDatasetA,
+                    window.densityContourPrevious.currentDatasetB
+                );
+            }
+            
+            // Update title
+            d3.select("#title-density-contour")
+                .transition()
+                .duration(300)
+                .style("opacity", 0)
+                .transition()
+                .duration(300)
+                .style("opacity", 1)
+                .text(`Density Contours: ${nameA} vs ${nameB}`);
+            
+            // Update previous dataset tracking for next transition (if not animating)
+            if (!datasetAChanged && !datasetBChanged) {
+                window.densityContourPrevious.nameA = nameA;
+                window.densityContourPrevious.nameB = nameB;
+            }
+        }
 
         /* ==========================================
            COLOR PALETTE CONFIGURATION
@@ -236,7 +1226,7 @@
         if (typeof window.plotBNegativeX === 'undefined') window.plotBNegativeX = true;
 
         // Draw animated superposition bar chart
-    function drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB) {
+    function drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB, shouldFadeOutlines = false, forceAnimation = false) {
             const svgBar = d3.select("#bar-superposition svg");
             svgBar.selectAll("*").remove();
             const widthBar = +svgBar.attr("width"), heightBar = +svgBar.attr("height");
@@ -349,12 +1339,16 @@
                     highlightScatterPoints('A', binsA, window.selectedBinsA, datasetA, '#scatter-A');
                     updateBarOutlines('A', binsA, window.selectedBinsA, gBar, colorA, xBar, yBar);
                 });
-            if (window.changedA) {
+            if (window.changedA || forceAnimation) {
                 barsA.transition()
                     .delay(500)
                     .duration(800)
                     .attr("y", d => yBar(d.length))
-                    .attr("height", d => yBar(0) - yBar(d.length));
+                    .attr("height", d => yBar(0) - yBar(d.length))
+                    .on("end", function() {
+                        // Mark histogram animation as complete for density plot fade-in
+                        window.histogramAnimationComplete = true;
+                    });
             } else {
                 barsA.attr("y", d => yBar(d.length))
                     .attr("height", d => yBar(0) - yBar(d.length));
@@ -379,6 +1373,40 @@
                     highlightScatterPoints('B', binsB, window.selectedBinsB, datasetB, '#scatter-B');
                     updateBarOutlines('B', binsB, window.selectedBinsB, gBar, colorB, xBar, yBar);
                 });
+
+            // Animate bars B to target height (considering orientation)
+            if (window.plotBNegativeX) {
+                if (window.changedB || forceAnimation) {
+                    barsB.transition()
+                        .delay(500)
+                        .duration(800)
+                        .attr("y", yBar(0))
+                        .attr("height", d => yBar(-d.length) - yBar(0))
+                        .on("end", function() {
+                            // Mark histogram animation as complete for density plot fade-in
+                            window.histogramAnimationComplete = true;
+                        });
+                } else {
+                    barsB.attr("y", yBar(0))
+                        .attr("height", d => yBar(-d.length) - yBar(0));
+                }
+            } else {
+                if (window.changedB || forceAnimation) {
+                    barsB.transition()
+                        .delay(500)
+                        .duration(800)
+                        .attr("y", d => yBar(d.length))
+                        .attr("height", d => yBar(0) - yBar(d.length))
+                        .on("end", function() {
+                            // Mark histogram animation as complete for density plot fade-in
+                            window.histogramAnimationComplete = true;
+                        });
+                } else {
+                    barsB.attr("y", d => yBar(d.length))
+                        .attr("height", d => yBar(0) - yBar(d.length));
+                }
+            }
+
         // Draw gold outlines for selected bars (no fill)
         function updateBarOutlines(which, bins, selectedBins, gBar, color, xBar, yBar) {
             // Remove previous outlines
@@ -401,29 +1429,7 @@
                 }
             });
         }
-            if (window.plotBNegativeX) {
-                if (window.changedB) {
-                    barsB.transition()
-                        .delay(500)
-                        .duration(800)
-                        .attr("y", yBar(0))
-                        .attr("height", d => yBar(-d.length) - yBar(0));
-                } else {
-                    barsB.attr("y", yBar(0))
-                        .attr("height", d => yBar(-d.length) - yBar(0));
-                }
-            } else {
-                if (window.changedB) {
-                    barsB.transition()
-                        .delay(500)
-                        .duration(800)
-                        .attr("y", d => yBar(d.length))
-                        .attr("height", d => yBar(0) - yBar(d.length));
-                } else {
-                    barsB.attr("y", d => yBar(d.length))
-                        .attr("height", d => yBar(0) - yBar(d.length));
-                }
-            }
+
         // Highlight scatterplot points based on selected bins
         function highlightScatterPoints(which, bins, selectedBins, dataset, scatterSelector) {
             // Find selected bin ranges
@@ -568,15 +1574,15 @@
             }
 
             // Animate removal of old lines for changed dataset only
-            if (window.prevMeanStdA && window.changedA) {
+            if (window.prevMeanStdA && (window.changedA || forceAnimation)) {
                 animateOldLines(window.prevMeanStdA, "A", window.prevColorA);
             }
-            if (window.prevMeanStdB && window.changedB) {
+            if (window.prevMeanStdB && (window.changedB || forceAnimation)) {
                 animateOldLines(window.prevMeanStdB, "B", window.prevColorB);
             }
 
             // Draw new lines only for changed dataset, keep unchanged
-            if (window.changedA || window.prevMeanStdA === null) {
+            if (window.changedA || window.prevMeanStdA === null || forceAnimation) {
                 meanStdLinesA.forEach(line => {
                     gBar.append("line")
                         .attr("x1", line.x)
@@ -615,7 +1621,7 @@
                     .style("font-size", "13px");
             }
 
-            if (window.changedB || window.prevMeanStdB === null) {
+            if (window.changedB || window.prevMeanStdB === null || forceAnimation) {
                 meanStdLinesB.forEach(line => {
                     gBar.append("line")
                         .attr("x1", line.x)
@@ -658,9 +1664,361 @@
             window.prevColorA = colorA;
             window.prevColorB = colorB;
 
+            // Store scales and container for later use
+            window.newXBar = xBar;
+            window.newYBar = yBar;
+            window.newGBar = gBar;
+
             // Always redraw outlines for selected bins after bars are drawn
             updateBarOutlines('A', binsA, window.selectedBinsA || {}, gBar, colorA, xBar, yBar);
             updateBarOutlines('B', binsB, window.selectedBinsB || {}, gBar, colorB, xBar, yBar);
+        }
+
+        /* ==========================================
+           UNIFIED HISTOGRAM AXIS UPDATE FUNCTION
+        ========================================== */
+        // Consolidated function to update histogram axis orientation while preserving bar selections
+        function updateHistogramAxis() {
+            const nameA = d3.select("#datasetA").property("value");
+            const nameB = d3.select("#datasetB").property("value");
+            const idxA = datasetNames.indexOf(nameA);
+            const idxB = datasetNames.indexOf(nameB);
+            const colorA = getColor(idxA);
+            const colorB = getColor(idxB);
+            const datasetA = data.filter(d => d.dataset === nameA).map(d => ({x: +d.x, y: +d.y}));
+            const datasetB = data.filter(d => d.dataset === nameB).map(d => ({x: +d.x, y: +d.y}));
+            
+            // Preserve current bar selections
+            const preservedSelectedA = window.selectedBinsA ? {...window.selectedBinsA} : {};
+            const preservedSelectedB = window.selectedBinsB ? {...window.selectedBinsB} : {};
+            
+            animateHistogramAxisTransition(datasetA, datasetB, nameA, nameB, colorA, colorB, preservedSelectedA, preservedSelectedB);
+        }
+        
+        // Unified animation function that handles the complete axis transition
+        function animateHistogramAxisTransition(datasetA, datasetB, nameA, nameB, colorA, colorB, preservedSelectedA, preservedSelectedB) {
+            const svgBar = d3.select("#bar-superposition svg");
+            
+            // Phase 1: Get current axis position and animate everything to recede
+            const currentYScale = getCurrentYScale();
+            const axisY = currentYScale(0);
+            
+            // Select all current elements
+            const barsA = svgBar.selectAll(".bar-A");
+            const barsB = svgBar.selectAll(".bar-B");
+            const meanLines = svgBar.selectAll("line[stroke-dasharray]");
+            const stdLines = svgBar.selectAll("line:not([stroke-dasharray])");
+            const outlinesA = svgBar.selectAll(".bar-A-outline");
+            const outlinesB = svgBar.selectAll(".bar-B-outline");
+            
+            const totalElements = barsA.size() + barsB.size() + meanLines.size() + stdLines.size() + outlinesA.size() + outlinesB.size();
+            let completedElements = 0;
+            
+            function onElementAnimationComplete() {
+                completedElements++;
+                if (completedElements >= totalElements) {
+                    // All elements have receded, now redraw with new axis
+                    setTimeout(() => {
+                        redrawHistogramWithNewAxis(datasetA, datasetB, nameA, nameB, colorA, colorB, preservedSelectedA, preservedSelectedB);
+                    }, 300);
+                }
+            }
+            
+            // Animate all elements to recede to current axis
+            if (barsA.size() > 0) {
+                barsA.transition()
+                    .duration(500)
+                    .attr("height", 0)
+                    .attr("y", axisY)
+                    .on("end", onElementAnimationComplete);
+            }
+            
+            if (barsB.size() > 0) {
+                barsB.transition()
+                    .duration(500)
+                    .attr("height", 0)
+                    .attr("y", axisY)
+                    .on("end", onElementAnimationComplete);
+            }
+            
+            if (meanLines.size() > 0) {
+                meanLines.transition()
+                    .duration(500)
+                    .attr("y1", axisY)
+                    .attr("y2", axisY)
+                    .on("end", onElementAnimationComplete);
+            }
+            
+            if (stdLines.size() > 0) {
+                stdLines.transition()
+                    .duration(500)
+                    .attr("y1", axisY)
+                    .attr("y2", axisY)
+                    .on("end", onElementAnimationComplete);
+            }
+            
+            if (outlinesA.size() > 0) {
+                outlinesA.transition()
+                    .duration(500)
+                    .attr("height", 0)
+                    .attr("y", axisY)
+                    .attr("opacity", 0)
+                    .on("end", onElementAnimationComplete);
+            }
+            
+            if (outlinesB.size() > 0) {
+                outlinesB.transition()
+                    .duration(500)
+                    .attr("height", 0)
+                    .attr("y", axisY)
+                    .attr("opacity", 0)
+                    .on("end", onElementAnimationComplete);
+            }
+            
+            // Fallback if no elements exist
+            if (totalElements === 0) {
+                setTimeout(() => {
+                    redrawHistogramWithNewAxis(datasetA, datasetB, nameA, nameB, colorA, colorB, preservedSelectedA, preservedSelectedB);
+                }, 800);
+            }
+        }
+        
+        // Phase 2: Clear and redraw with new axis, then animate bars to grow with preserved selections
+        function redrawHistogramWithNewAxis(datasetA, datasetB, nameA, nameB, colorA, colorB, preservedSelectedA, preservedSelectedB) {
+            const svgBar = d3.select("#bar-superposition svg");
+            svgBar.selectAll("*").remove(); // Clear everything
+            
+            const widthBar = +svgBar.attr("width"), heightBar = +svgBar.attr("height");
+            const marginBar = {top: 20, right: 20, bottom: 30, left: 40};
+            const plotWidthBar = widthBar - marginBar.left - marginBar.right;
+            const plotHeightBar = heightBar - marginBar.top - marginBar.bottom;
+
+            const xBar = d3.scaleLinear()
+                .domain([0, 100])
+                .range([0, plotWidthBar]);
+                
+            let yBar, gBar, axisYPos;
+            if (window.plotBNegativeX) {
+                // Centered y-axis: range [-globalMaxBinCount, globalMaxBinCount]
+                yBar = d3.scaleLinear()
+                    .domain([-globalMaxBinCount, globalMaxBinCount])
+                    .range([plotHeightBar, 0]);
+                gBar = svgBar.append("g").attr("transform", `translate(${marginBar.left},${marginBar.top})`);
+                axisYPos = yBar(0);
+                gBar.append("g")
+                    .attr("transform", `translate(0,${axisYPos})`)
+                    .call(d3.axisBottom(xBar));
+                gBar.append("g")
+                    .call(d3.axisLeft(yBar));
+            } else {
+                // Bottom y-axis: range [0, globalMaxBinCount]
+                yBar = d3.scaleLinear()
+                    .domain([0, globalMaxBinCount])
+                    .range([plotHeightBar, 0]);
+                gBar = svgBar.append("g").attr("transform", `translate(${marginBar.left},${marginBar.top})`);
+                axisYPos = yBar(0);
+                gBar.append("g")
+                    .attr("transform", `translate(0,${axisYPos})`)
+                    .call(d3.axisBottom(xBar));
+                gBar.append("g")
+                    .call(d3.axisLeft(yBar));
+            }
+            
+            // Recreate bins for the current datasets
+            const binsA = bins(datasetA.map(d => d.x));
+            const binsB = bins(datasetB.map(d => d.x));
+            
+            // Restore preserved selections to global variables
+            window.selectedBinsA = preservedSelectedA;
+            window.selectedBinsB = preservedSelectedB;
+            
+            // Create and animate bars with preserved click handlers
+            createAndAnimateBarsWithSelections(gBar, binsA, binsB, datasetA, datasetB, nameA, nameB, colorA, colorB, xBar, yBar);
+            
+            // Add legend and animate mean/std lines
+            addHistogramLegendAndLines(gBar, nameA, nameB, colorA, colorB, datasetA, datasetB, xBar, yBar);
+            
+            // After bars finish animating, restore the outlines for selected bars
+            setTimeout(() => {
+                updateBarOutlines('A', binsA, window.selectedBinsA, gBar, colorA, xBar, yBar);
+                updateBarOutlines('B', binsB, window.selectedBinsB, gBar, colorB, xBar, yBar);
+            }, 800); // Wait for bar animation to complete
+        }
+        
+        // Create bars with proper click handlers and animate them to full height
+        function createAndAnimateBarsWithSelections(gBar, binsA, binsB, datasetA, datasetB, nameA, nameB, colorA, colorB, xBar, yBar) {
+            // Create bars for dataset A
+            const barsA = gBar.selectAll(".bar-A")
+                .data(binsA)
+                .enter().append("rect")
+                .attr("class", "bar-A")
+                .attr("x", d => xBar(d.x0))
+                .attr("y", yBar(0))
+                .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
+                .attr("height", 0)
+                .attr("fill", colorA)
+                .attr("opacity", 0.5)
+                .style("cursor", "pointer")
+                .on("click", function(event, d) {
+                    if (!window.selectedBinsA) window.selectedBinsA = {};
+                    const binKey = `${d.x0}-${d.x1}`;
+                    window.selectedBinsA[binKey] = !window.selectedBinsA[binKey];
+                    highlightScatterPoints('A', binsA, window.selectedBinsA, datasetA, '#scatter-A');
+                    updateBarOutlines('A', binsA, window.selectedBinsA, gBar, colorA, xBar, yBar);
+                });
+                
+            // Animate bars A to target height
+            barsA.transition()
+                .duration(800)
+                .attr("y", d => yBar(d.length))
+                .attr("height", d => yBar(0) - yBar(d.length));
+            
+            // Create bars for dataset B
+            const barsB = gBar.selectAll(".bar-B")
+                .data(binsB)
+                .enter().append("rect")
+                .attr("class", "bar-B")
+                .attr("x", d => xBar(d.x0))
+                .attr("y", yBar(0))
+                .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
+                .attr("height", 0)
+                .attr("fill", colorB)
+                .attr("opacity", 0.5)
+                .style("cursor", "pointer")
+                .on("click", function(event, d) {
+                    if (!window.selectedBinsB) window.selectedBinsB = {};
+                    const binKey = `${d.x0}-${d.x1}`;
+                    window.selectedBinsB[binKey] = !window.selectedBinsB[binKey];
+                    highlightScatterPoints('B', binsB, window.selectedBinsB, datasetB, '#scatter-B');
+                    updateBarOutlines('B', binsB, window.selectedBinsB, gBar, colorB, xBar, yBar);
+                });
+            
+            // Animate bars B to target height (considering orientation)
+            if (window.plotBNegativeX) {
+                barsB.transition()
+                    .duration(800)
+                    .attr("y", yBar(0))
+                    .attr("height", d => yBar(-d.length) - yBar(0));
+            } else {
+                barsB.transition()
+                    .duration(800)
+                    .attr("y", d => yBar(d.length))
+                    .attr("height", d => yBar(0) - yBar(d.length));
+            }
+        }
+        
+        // Helper to get current Y scale (BEFORE the toggle)
+        function getCurrentYScale() {
+            const svgBar = d3.select("#bar-superposition svg");
+            const heightBar = +svgBar.attr("height");
+            const marginBar = {top: 20, right: 20, bottom: 30, left: 40};
+            const plotHeightBar = heightBar - marginBar.top - marginBar.bottom;
+            
+            // Use the OPPOSITE of the current plotBNegativeX since it was already toggled
+            const currentOrientation = !window.plotBNegativeX;
+            
+            if (currentOrientation) {
+                // Current is centered mode (negative X)
+                return d3.scaleLinear()
+                    .domain([-globalMaxBinCount, globalMaxBinCount])
+                    .range([plotHeightBar, 0]);
+            } else {
+                // Current is positive-only mode
+                return d3.scaleLinear()
+                    .domain([0, globalMaxBinCount])
+                    .range([plotHeightBar, 0]);
+            }
+        }
+        
+        // Helper function to add legend and animate mean/std lines
+        function addHistogramLegendAndLines(gBar, nameA, nameB, colorA, colorB, datasetA, datasetB, xBar, yBar) {
+            const plotWidthBar = +d3.select("#bar-superposition svg").attr("width") - 80;
+            
+            // Helper to darken color
+            function darkenColor(hex, factor=0.6) {
+                let c = d3.color(hex);
+                if (!c) return hex;
+                let r = Math.floor(c.r * factor);
+                let g = Math.floor(c.g * factor);
+                let b = Math.floor(c.b * factor);
+                return `rgb(${r},${g},${b})`;
+            }
+            
+            // Legend
+            const legend = gBar.append("g").attr("transform", `translate(${plotWidthBar - 140},0)`);
+            legend.append("rect").attr("x", 0).attr("y", 0).attr("width", 18).attr("height", 18).attr("fill", colorA).attr("opacity", 0.5);
+            legend.append("text").attr("x", 24).attr("y", 14).text(nameA).style("font-size", "14px");
+            legend.append("rect").attr("x", 0).attr("y", 24).attr("width", 18).attr("height", 18).attr("fill", colorB).attr("opacity", 0.5);
+            legend.append("text").attr("x", 24).attr("y", 38).text(nameB).style("font-size", "14px");
+            
+            // Calculate statistics
+            const meanA = d3.mean(datasetA, d => d.x);
+            const meanB = d3.mean(datasetB, d => d.x);
+            const stdA = d3.deviation(datasetA, d => d.x);
+            const stdB = d3.deviation(datasetB, d => d.x);
+            
+            // Create mean lines starting at axis
+            const meanLineA = gBar.append("line")
+                .attr("x1", xBar(meanA))
+                .attr("x2", xBar(meanA))
+                .attr("y1", yBar(0))
+                .attr("y2", yBar(0))
+                .attr("stroke", darkenColor(colorA))
+                .attr("stroke-width", 3)
+                .attr("stroke-dasharray", "6,3");
+                
+            const meanLineB = gBar.append("line")
+                .attr("x1", xBar(meanB))
+                .attr("x2", xBar(meanB))
+                .attr("y1", yBar(0))
+                .attr("y2", yBar(0))
+                .attr("stroke", darkenColor(colorB))
+                .attr("stroke-width", 3)
+                .attr("stroke-dasharray", "6,3");
+            
+            // Create std lines starting at axis
+            const stdLineA1 = gBar.append("line")
+                .attr("x1", xBar(meanA - stdA))
+                .attr("x2", xBar(meanA - stdA))
+                .attr("y1", yBar(0))
+                .attr("y2", yBar(0))
+                .attr("stroke", darkenColor(colorA))
+                .attr("stroke-width", 2);
+                
+            const stdLineA2 = gBar.append("line")
+                .attr("x1", xBar(meanA + stdA))
+                .attr("x2", xBar(meanA + stdA))
+                .attr("y1", yBar(0))
+                .attr("y2", yBar(0))
+                .attr("stroke", darkenColor(colorA))
+                .attr("stroke-width", 2);
+                
+            const stdLineB1 = gBar.append("line")
+                .attr("x1", xBar(meanB - stdB))
+                .attr("x2", xBar(meanB - stdB))
+                .attr("y1", yBar(0))
+                .attr("y2", yBar(0))
+                .attr("stroke", darkenColor(colorB))
+                .attr("stroke-width", 2);
+                
+            const stdLineB2 = gBar.append("line")
+                .attr("x1", xBar(meanB + stdB))
+                .attr("x2", xBar(meanB + stdB))
+                .attr("y1", yBar(0))
+                .attr("y2", yBar(0))
+                .attr("stroke", darkenColor(colorB))
+                .attr("stroke-width", 2);
+            
+            // Animate mean and std lines to full height
+            const topY = window.plotBNegativeX ? yBar(-globalMaxBinCount) : yBar(globalMaxBinCount);
+            const bottomY = window.plotBNegativeX ? yBar(globalMaxBinCount) : yBar(0);
+            
+            [meanLineA, meanLineB, stdLineA1, stdLineA2, stdLineB1, stdLineB2].forEach(line => {
+                line.transition()
+                    .duration(800)
+                    .attr("y1", topY)
+                    .attr("y2", bottomY);
+            });
         }
 
         /* ==========================================
@@ -703,6 +2061,13 @@
                         window._scatterCount++;
                         if (window._scatterCount === 2) {
                             drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB);
+                            // Update shape comparer after histogram animation completes (500ms delay + 800ms duration = 1300ms)
+                            setTimeout(() => {
+                                // Mark histogram animation as complete for initial load
+                                window.histogramAnimationComplete = true;
+                                drawShapeComparer();
+                                drawDensityContour();
+                            }, 1400);
                             window._scatterCount = 0;
                         }
                     };
@@ -711,16 +2076,34 @@
                 } else if (changedA) {
                     window.scatterDoneCallback = function() {
                         drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB);
+                        // Update shape comparer after histogram animation completes
+                        setTimeout(() => {
+                            window.histogramAnimationComplete = true;
+                            drawShapeComparer();
+                            drawDensityContour();
+                        }, 1400);
                     };
                     drawScatter("#scatter-A", datasetA, colorA);
                 } else if (changedB) {
                     window.scatterDoneCallback = function() {
                         drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB);
+                        // Update shape comparer after histogram animation completes
+                        setTimeout(() => {
+                            window.histogramAnimationComplete = true;
+                            drawShapeComparer();
+                            drawDensityContour();
+                        }, 1400);
                     };
                     drawScatter("#scatter-B", datasetB, colorB);
                 } else {
                     // No change, just update bar chart
                     drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB);
+                    // Update shape comparer after histogram animation completes
+                    setTimeout(() => {
+                        window.histogramAnimationComplete = true;
+                        drawShapeComparer();
+                        drawDensityContour();
+                    }, 1400);
                 }
 
                 // Always update titles
@@ -733,8 +2116,23 @@
                 window.lastScatterB = currentB;
         }
 
+        /* ==========================================
+           HELPER FUNCTION FOR SHAPE-ONLY UPDATES
+        ========================================== */
+        // For controls that only affect the shape comparer (no need for full animation sequence)
+        function updateShapeComparerOnly() {
+            drawShapeComparer();
+            drawDensityContour();
+        }
+
         // Initialize visualizations on page load
+        // Ensure selected bins are initialized
+        if (typeof window.selectedBinsA === 'undefined') window.selectedBinsA = {};
+        if (typeof window.selectedBinsB === 'undefined') window.selectedBinsB = {};
+        
         updatePlots();
+        
+        // Shape comparer will be initialized after histogram animation completes via updatePlots()
 
         /* ==========================================
            EVENT LISTENERS & UI INTERACTIONS
@@ -742,6 +2140,20 @@
         // Dataset selection change handlers
         d3.select("#datasetA").on("change", updatePlots);
         d3.select("#datasetB").on("change", updatePlots);
+
+        // Control change handlers for shape comparer
+        d3.select("#toggle-points").on("change", updateShapeComparerOnly);
+        d3.select("#toggle-hull").on("change", updateShapeComparerOnly);
+        
+        d3.select("#blend-slider").on("input", function() {
+            d3.select("#blend-value").text(this.value + "%");
+            updateShapeComparerOnly();
+        });
+        
+        d3.select("#bandwidth-slider").on("input", function() {
+            d3.select("#bandwidth-value").text(this.value);
+            updateShapeComparerOnly();
+        });
 
         // Toggle button for positive/negative bar chart display
         d3.select("#toggle-negative-x").on("click", function() {
