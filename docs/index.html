@@ -5,18 +5,101 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Home - Dark Theme</title>
-	<link rel="stylesheet" href="styles.css">
+	<style>
+* { box-sizing: border-box; font-family: system-ui, sans-serif; }
+body.dark-theme {
+	margin: 0;
+	padding: 0;
+	background: #181a20;
+	color: #e0e0e0;
+}
+.navbar {
+	background: #23272f;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+	padding: 1rem 2rem;
+}
+.navbar-brand {
+	font-size: 1.5rem;
+	font-weight: bold;
+	color: #f8f8f8;
+	margin-bottom: 0.5rem;
+}
+.accordion {
+	width: 100%;
+	background: none;
+	border: none;
+	color: #a3a3ff;
+	font-size: 1.1rem;
+	cursor: pointer;
+	padding: 0.5rem 0;
+	text-align: left;
+	outline: none;
+	transition: color 0.2s;
+}
+.accordion:hover {
+	color: #ffd700;
+}
+.panel {
+	display: none;
+	flex-direction: column;
+	gap: 1rem;
+	margin-top: 0.5rem;
+}
+.panel.show {
+	display: flex;
+}
+.panel a {
+	color: #a3a3ff;
+	text-decoration: none;
+	font-size: 1.1rem;
+	transition: color 0.2s;
+}
+.panel a:hover {
+	color: #ffd700;
+}
+.main-content {
+	padding: 2rem;
+	text-align: center;
+}
+	</style>
 </head>
 <body class="dark-theme">
 	<nav class="navbar">
 		<div class="navbar-brand">D3 Assignment</div>
-		<ul class="navbar-links">
-			<li><a href="pages/D3_Assignment_1.html">Example Page</a></li>
-		</ul>
+		<button class="accordion" id="menuToggle">Pages ▼</button>
+		<div class="panel" id="menuPanel">
+			<!-- Links will be loaded here by JS -->
+		</div>
 	</nav>
 	<main class="main-content">
 		<h1>Welcome to the D3 Assignment Home Page</h1>
-		<p>Select a page from the navigation bar above.</p>
+		<p>Select a page from the accordion menu above.</p>
 	</main>
+	<script>
+	// Accordion toggle
+	document.addEventListener('DOMContentLoaded', function() {
+		const menuToggle = document.getElementById('menuToggle');
+		const menuPanel = document.getElementById('menuPanel');
+		menuToggle.addEventListener('click', function() {
+			menuPanel.classList.toggle('show');
+		});
+
+		// Load links from pages.json
+		fetch('pages/pages.json')
+			.then(response => response.json())
+			.then(pages => {
+				menuPanel.innerHTML = '';
+				pages.forEach(page => {
+					const a = document.createElement('a');
+					a.href = 'pages/' + page.file.replace(/^pages\//, '');
+					a.textContent = page.name;
+					menuPanel.appendChild(a);
+				});
+			})
+			.catch(err => {
+				menuPanel.innerHTML = '<span style="color:#ff8888">Could not load page list.</span>';
+			});
+	});
+	</script>
 </body>
 </html>
