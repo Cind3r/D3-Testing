@@ -259,7 +259,7 @@
                     .data(window.prevBinsB)
                     .enter().append("rect")
                     .attr("class", "old-bar-B")
-                    .attr("x", d => xBar(d.x0) + 2)
+                    .attr("x", d => xBar(d.x0))
                     .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
                     .attr("fill", window.prevColorB)
                     .attr("opacity", 0.5);
@@ -295,7 +295,15 @@
                 .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
                 .attr("height", 0)
                 .attr("fill", colorA)
-                .attr("opacity", 0.5);
+                .attr("opacity", 0.5)
+                .style("cursor", "pointer")
+                .on("click", function(event, d) {
+                    if (!window.selectedBinsA) window.selectedBinsA = {};
+                    const binKey = `${d.x0}-${d.x1}`;
+                    window.selectedBinsA[binKey] = !window.selectedBinsA[binKey];
+                    highlightScatterPoints('A', binsA, window.selectedBinsA, datasetA, '#scatter-A');
+                    updateBarOutlines('A', binsA, window.selectedBinsA, gBar, colorA, xBar, yBar);
+                });
             if (window.changedA) {
                 barsA.transition()
                     .delay(500)
@@ -317,7 +325,37 @@
                 .attr("width", d => xBar(d.x1) - xBar(d.x0) - 2)
                 .attr("height", 0)
                 .attr("fill", colorB)
-                .attr("opacity", 0.5);
+                .attr("opacity", 0.5)
+                .style("cursor", "pointer")
+                .on("click", function(event, d) {
+                    if (!window.selectedBinsB) window.selectedBinsB = {};
+                    const binKey = `${d.x0}-${d.x1}`;
+                    window.selectedBinsB[binKey] = !window.selectedBinsB[binKey];
+                    highlightScatterPoints('B', binsB, window.selectedBinsB, datasetB, '#scatter-B');
+                    updateBarOutlines('B', binsB, window.selectedBinsB, gBar, colorB, xBar, yBar);
+                });
+        // Draw gold outlines for selected bars (no fill)
+        function updateBarOutlines(which, bins, selectedBins, gBar, color, xBar, yBar) {
+            // Remove previous outlines
+            gBar.selectAll('.bar-' + which + '-outline').remove();
+            Object.entries(selectedBins).forEach(([key, val]) => {
+                if (val) {
+                    const [x0, x1] = key.split('-').map(Number);
+                    const bin = bins.find(b => b.x0 === x0 && b.x1 === x1);
+                    if (bin) {
+                        gBar.append('rect')
+                            .attr('class', 'bar-' + which + '-outline')
+                            .attr('x', xBar(bin.x0))
+                            .attr('y', yBar(which === 'B' && window.plotBNegativeX ? 0 : bin.length))
+                            .attr('width', xBar(bin.x1) - xBar(bin.x0) - 2)
+                            .attr('height', which === 'B' && window.plotBNegativeX ? (yBar(-bin.length) - yBar(0)) : (yBar(0) - yBar(bin.length)))
+                            .attr('fill', 'none')
+                            .attr('stroke', '#ffd700')
+                            .attr('stroke-width', 3);
+                    }
+                }
+            });
+        }
             if (window.plotBNegativeX) {
                 if (window.changedB) {
                     barsB.transition()
@@ -341,6 +379,33 @@
                         .attr("height", d => yBar(0) - yBar(d.length));
                 }
             }
+        // Highlight scatterplot points based on selected bins
+        function highlightScatterPoints(which, bins, selectedBins, dataset, scatterSelector) {
+            // Find selected bin ranges
+            const selectedRanges = Object.entries(selectedBins)
+                .filter(([key, val]) => val)
+                .map(([key]) => {
+                    const [x0, x1] = key.split('-').map(Number);
+                    return {x0, x1};
+                });
+            // Select scatterplot circles
+            const svg = d3.select(scatterSelector + ' svg');
+            svg.selectAll('circle')
+                .attr('stroke', null)
+                .attr('stroke-width', null)
+                .attr('opacity', 0.7);
+            if (selectedRanges.length === 0) return;
+            svg.selectAll('circle')
+                .each(function(d) {
+                    const inBin = selectedRanges.some(r => d.x >= r.x0 && d.x < r.x1);
+                    if (inBin) {
+                        d3.select(this)
+                            .attr('stroke', '#ffd700')
+                            .attr('stroke-width', 2)
+                            .attr('opacity', 1);
+                    }
+                });
+        }
 
             // Store current bins/colors for next update
             window.prevBinsA = binsA;
@@ -547,12 +612,23 @@
             window.prevMeanStdB = meanStdLinesB;
             window.prevColorA = colorA;
             window.prevColorB = colorB;
+
+            // Always redraw outlines for selected bins after bars are drawn
+            updateBarOutlines('A', binsA, window.selectedBinsA || {}, gBar, colorA, xBar, yBar);
+            updateBarOutlines('B', binsB, window.selectedBinsB || {}, gBar, colorB, xBar, yBar);
         }
 
     // Update all plots
     function updatePlots() {
+            // Only reset highlights when dataset is changed, not when toggling orientation
+            if (typeof window.selectedBinsA === 'undefined') window.selectedBinsA = {};
+            if (typeof window.selectedBinsB === 'undefined') window.selectedBinsB = {};
+            // Detect dataset change
             const nameA = d3.select("#datasetA").property("value");
             const nameB = d3.select("#datasetB").property("value");
+            if (window.lastScatterA !== nameA) window.selectedBinsA = {};
+            if (window.lastScatterB !== nameB) window.selectedBinsB = {};
+            // No need to redraw outlines here; handled in drawSuperpositionBar
                 const idxA = datasetNames.indexOf(nameA);
                 const idxB = datasetNames.indexOf(nameB);
                 const colorA = getColor(idxA);
@@ -610,7 +686,7 @@
         }
 
         // Initial plot
-        updatePlots();
+    updatePlots();
 
         // Event listeners
         d3.select("#datasetA").on("change", updatePlots);
