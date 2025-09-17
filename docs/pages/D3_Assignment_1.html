@@ -1,28 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- ==========================================
+         DOCUMENT METADATA & EXTERNAL LIBRARIES
+    ========================================== -->
     <meta charset="UTF-8">
     <title>Datasaurus Dozen D3 Visualizations</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- ==========================================
+         CSS STYLES
+    ========================================== -->
     <style>
+    /* Base page styling */
     body { font-family: Arial, sans-serif; margin: 40px; background: #181a20; color: #e0e0e0; }
     h1 { text-align: center; color: #fafafa; }
+    
+    /* Chart container and visualization styling */
     .chart-container { display: flex; gap: 40px; justify-content: center; margin-bottom: 60px; }
     .chart { background: #23272f; border-radius: 8px; box-shadow: 0 2px 8px #111; padding: 20px; }
     .chart-title { text-align: center; margin-bottom: 10px; font-weight: bold; color: #fafafa; }
     .superposition { margin: 0 auto; width: 700px; }
+    
+    /* Form controls styling */
     label { color: #e0e0e0; }
     select { background: #23272f; color: #e0e0e0; border: 1px solid #444; border-radius: 4px; padding: 4px; }
+    
     /* SVG axis and text styles */
     svg text, .tick text { fill: #e0e0e0 !important; }
     .domain, .tick line { stroke: #888 !important; }
+    
     /* Legend box and text */
     .legend rect { stroke: #444; }
     .legend text { fill: #e0e0e0; }
+    
+    /* Navigation bar styling */
     .navbar {
-	background: #23272f;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-	padding: 1rem 2rem;
+        background: #23272f;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        padding: 1rem 2rem;
     }
     .navbar-brand {
         font-size: 1.5rem;
@@ -62,20 +78,31 @@
     }
     </style>
 </head>
+
 <body>
+    <!-- ==========================================
+         NAVIGATION SECTION
+    ========================================== -->
     <nav class="navbar">
-		<div class="navbar-brand">D3 Assignment</div>
-		<button class="accordion" id="menuToggle">Pages ▼</button>
-		<div class="panel" id="menuPanel">
-			<!-- Links will be loaded here by JS -->
-		</div>
-	</nav>
+        <div class="navbar-brand">D3 Assignment</div>
+        <button class="accordion" id="menuToggle">Pages ▼</button>
+        <div class="panel" id="menuPanel">
+            <!-- Links will be loaded here by JS -->
+        </div>
+    </nav>
+    
+    <!-- ==========================================
+         PAGE HEADER & DESCRIPTION
+    ========================================== -->
     <h1>Datasaurus Dozen: D3 Visualizations</h1>
     <p>
         All datasets in the Datasaurus Dozen have the same means, standard deviations, and correlations, but vastly different structures.
         Below, two visualization paradigms illustrate these differences: juxtaposition (side-by-side scatterplots) and superposition (overlaid bar chart).
     </p>
 
+    <!-- ==========================================
+         DATASET SELECTION CONTROLS
+    ========================================== -->
     <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 30px;">
         <div>
             <label for="datasetA">Select Dataset A:</label>
@@ -87,6 +114,9 @@
         </div>
     </div>
 
+    <!-- ==========================================
+         SCATTERPLOT VISUALIZATIONS
+    ========================================== -->
     <div class="chart-container">
         <div class="chart" id="scatter-A">
             <div class="chart-title" id="title-A">Scatterplot: </div>
@@ -98,6 +128,9 @@
         </div>
     </div>
 
+    <!-- ==========================================
+         SUPERPOSITION BAR CHART & CONTROLS
+    ========================================== -->
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 40px;">
         <button id="toggle-negative-x" style="background: #23272f; color: #e0e0e0; border: 1px solid #444; border-radius: 4px; padding: 8px 16px; font-size: 15px; cursor: pointer; margin-bottom: 10px;">Change B Plot to Positive</button>
         <div class="chart superposition" id="bar-superposition">
@@ -106,39 +139,48 @@
         </div>
     </div>
 
+    <!-- ==========================================
+         JAVASCRIPT: DATA PROCESSING & VISUALIZATION
+    ========================================== -->
     <script>
-    // Load CSV data
+    /* ==========================================
+       DATA LOADING & INITIALIZATION
+    ========================================== */
     d3.csv("data.csv").then(function(data) {
-    // Find global min/max for x and y
-    const globalX = d3.extent(data, d => +d.x);
-    const globalY = d3.extent(data, d => +d.y);
-    // Compute global max bin count for histogram y-axis
-    const datasetNames = Array.from(new Set(data.map(d => d.dataset)));
-    // Restore original bin count
-    const bins = d3.bin().domain([0, 100]).thresholds(20);
-    let globalMaxBinCount = 0;
-    datasetNames.forEach(name => {
-        const dataset = data.filter(d => d.dataset === name).map(d => +d.x);
-        const binCounts = bins(dataset).map(bin => bin.length);
-        const maxCount = d3.max(binCounts);
-        if (maxCount > globalMaxBinCount) globalMaxBinCount = maxCount;
-    });
-        // Get all dataset names
-    // datasetNames already declared above
-        // Populate dropdowns
+        // Find global min/max for x and y
+        const globalX = d3.extent(data, d => +d.x);
+        const globalY = d3.extent(data, d => +d.y);
+        
+        // Compute global max bin count for histogram y-axis
+        const datasetNames = Array.from(new Set(data.map(d => d.dataset)));
+        const bins = d3.bin().domain([0, 100]).thresholds(20);
+        let globalMaxBinCount = 0;
+        datasetNames.forEach(name => {
+            const dataset = data.filter(d => d.dataset === name).map(d => +d.x);
+            const binCounts = bins(dataset).map(bin => bin.length);
+            const maxCount = d3.max(binCounts);
+            if (maxCount > globalMaxBinCount) globalMaxBinCount = maxCount;
+        });
+        
+        // Populate dropdown menus with dataset options
         datasetNames.forEach(name => {
             d3.select("#datasetA").append("option").attr("value", name).text(name);
             d3.select("#datasetB").append("option").attr("value", name).text(name);
         });
-        // Default selections
+        
+        // Set default selections
         d3.select("#datasetA").property("value", "dino");
         d3.select("#datasetB").property("value", "circle");
 
-        // Color palette
+        /* ==========================================
+           COLOR PALETTE CONFIGURATION
+        ========================================== */
         const colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628", "#f781bf", "#999999", "#1b9e77", "#d95f02", "#7570b3"];
         function getColor(idx) { return colors[idx % colors.length]; }
 
-        // Draw scatterplot with animation
+        /* ==========================================
+           SCATTERPLOT DRAWING & ANIMATION FUNCTIONS
+        ========================================== */
         function drawScatter(selector, dataset, color) {
             const svg = d3.select(selector + " svg");
             svg.selectAll("*").remove();
@@ -187,10 +229,13 @@
                 .call(function(points) { animatePoints(points, 0, window.scatterDoneCallback); });
         }
 
-    // Toggle state for negative x plotting
-    if (typeof window.plotBNegativeX === 'undefined') window.plotBNegativeX = true;
+        /* ==========================================
+           SUPERPOSITION BAR CHART FUNCTIONS
+        ========================================== */
+        // Toggle state for negative x plotting
+        if (typeof window.plotBNegativeX === 'undefined') window.plotBNegativeX = true;
 
-    // Draw animated superposition bar chart
+        // Draw animated superposition bar chart
     function drawSuperpositionBar(datasetA, datasetB, nameA, nameB, colorA, colorB) {
             const svgBar = d3.select("#bar-superposition svg");
             svgBar.selectAll("*").remove();
@@ -618,8 +663,11 @@
             updateBarOutlines('B', binsB, window.selectedBinsB || {}, gBar, colorB, xBar, yBar);
         }
 
-    // Update all plots
-    function updatePlots() {
+        /* ==========================================
+           PLOT UPDATE & COORDINATION FUNCTIONS
+        ========================================== */
+        // Update all plots when dataset selection changes
+        function updatePlots() {
             // Only reset highlights when dataset is changed, not when toggling orientation
             if (typeof window.selectedBinsA === 'undefined') window.selectedBinsA = {};
             if (typeof window.selectedBinsB === 'undefined') window.selectedBinsB = {};
@@ -685,14 +733,17 @@
                 window.lastScatterB = currentB;
         }
 
-        // Initial plot
-    updatePlots();
+        // Initialize visualizations on page load
+        updatePlots();
 
-        // Event listeners
+        /* ==========================================
+           EVENT LISTENERS & UI INTERACTIONS
+        ========================================== */
+        // Dataset selection change handlers
         d3.select("#datasetA").on("change", updatePlots);
         d3.select("#datasetB").on("change", updatePlots);
 
-        // Toggle button event
+        // Toggle button for positive/negative bar chart display
         d3.select("#toggle-negative-x").on("click", function() {
             window.plotBNegativeX = !window.plotBNegativeX;
             d3.select(this).text(window.plotBNegativeX ? "Change B Plot to Positive" : "Change B Plot to Negative");
@@ -700,30 +751,34 @@
         });
     });
 
-    // Accordion toggle
-	document.addEventListener('DOMContentLoaded', function() {
-		const menuToggle = document.getElementById('menuToggle');
-		const menuPanel = document.getElementById('menuPanel');
-		menuToggle.addEventListener('click', function() {
-			menuPanel.classList.toggle('show');
-		});
+    /* ==========================================
+       NAVIGATION MENU FUNCTIONALITY
+    ========================================== */
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('menuToggle');
+        const menuPanel = document.getElementById('menuPanel');
+        
+        // Toggle navigation menu visibility
+        menuToggle.addEventListener('click', function() {
+            menuPanel.classList.toggle('show');
+        });
 
-		// Load links from pages.json
-		fetch('pages.json')
-			.then(response => response.json())
-			.then(pages => {
-				menuPanel.innerHTML = '';
-				pages.forEach(page => {
-					const a = document.createElement('a');
-					a.href = page.file;
-					a.textContent = page.name;
-					menuPanel.appendChild(a);
-				});
-			})
-			.catch(err => {
-				menuPanel.innerHTML = '<span style="color:#ff8888">Could not load page list.</span>';
-			});
-	});
+        // Load navigation links from pages.json
+        fetch('pages.json')
+            .then(response => response.json())
+            .then(pages => {
+                menuPanel.innerHTML = '';
+                pages.forEach(page => {
+                    const a = document.createElement('a');
+                    a.href = page.file;
+                    a.textContent = page.name;
+                    menuPanel.appendChild(a);
+                });
+            })
+            .catch(err => {
+                menuPanel.innerHTML = '<span style="color:#ff8888">Could not load page list.</span>';
+            });
+    });
 
     </script>
 </body>
