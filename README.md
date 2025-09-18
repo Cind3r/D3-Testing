@@ -14,7 +14,7 @@ Clone the repo (and or download a .zip) then start a python server using `python
 
 An intro assignment to exploring how D3 works by doing comparisons of the Datasaurus Dozen dataset. Changing the dataset in the dropdown menu will update the scatterplot, histogram, and shape plots accordingly. 
 
-The datasets are by default mirrored against each other so that it is easier to see how the means/standard deviations are the same compared even though the desnity of the data varies. This is juxtaposed against the individual scatter plots as well, giving a better sense of how even though the datasets look vastly different, their statistical values remain similar. 
+The datasets are by default mirrored against each other so that it is easier to see how the means/standard deviations are the same compared even though the density/shape of the data varies. This is juxtaposed against the individual scatter plots as well, giving a better sense of how their statistical values remain similar even though the datasets look vastly different. 
 
 - The button allows the user to overlay the data (opaque, stacked) rather than have the datasets mirrored across the x-axis.
 - Clicking on a histogram bar will highlight the corresponding points on the scatter plot as well as the clicked bin
