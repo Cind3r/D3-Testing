@@ -286,15 +286,28 @@
     ========================================== */
     
     // 2D Kernel Density Estimation with Gaussian kernels
-    function kernelDensityEstimation(points, bandwidth, gridSize = 30) {
-        const xExtent = d3.extent(points, d => d.x);
-        const yExtent = d3.extent(points, d => d.y);
-        
-        // Expand extents slightly for padding
-        const xPadding = (xExtent[1] - xExtent[0]) * 0.1;
-        const yPadding = (yExtent[1] - yExtent[0]) * 0.1;
-        xExtent[0] -= xPadding; xExtent[1] += xPadding;
-        yExtent[0] -= yPadding; yExtent[1] += yPadding;
+    function kernelDensityEstimation(points, bandwidth, gridSize = 30, globalXExtent = null, globalYExtent = null) {
+        // Use global extents if provided, otherwise calculate from points
+        let xExtent, yExtent;
+        if (globalXExtent && globalYExtent) {
+            // Add small inward padding to prevent contours from touching axes
+            const xRange = globalXExtent[1] - globalXExtent[0];
+            const yRange = globalYExtent[1] - globalYExtent[0];
+            const xPadding = xRange * 0.05; // 5% padding inward
+            const yPadding = yRange * 0.05; // 5% padding inward
+            
+            xExtent = [globalXExtent[0] + xPadding, globalXExtent[1] - xPadding];
+            yExtent = [globalYExtent[0] + yPadding, globalYExtent[1] - yPadding];
+        } else {
+            xExtent = d3.extent(points, d => d.x);
+            yExtent = d3.extent(points, d => d.y);
+            
+            // Expand extents slightly for padding
+            const xPadding = (xExtent[1] - xExtent[0]) * 0.1;
+            const yPadding = (yExtent[1] - yExtent[0]) * 0.1;
+            xExtent[0] -= xPadding; xExtent[1] += xPadding;
+            yExtent[0] -= yPadding; yExtent[1] += yPadding;
+        }
         
         const xStep = (xExtent[1] - xExtent[0]) / (gridSize - 1);
         const yStep = (yExtent[1] - yExtent[0]) / (gridSize - 1);
@@ -923,6 +936,10 @@
                 .domain(globalY).nice()
                 .range([plotHeight, 0]);
             
+            // Get the actual domains after .nice() to ensure density bounds match axis bounds exactly
+            const actualXDomain = xScale.domain();
+            const actualYDomain = yScale.domain();
+            
             let g;
             if (existingG.empty()) {
                 svg.selectAll("*").remove();
@@ -956,9 +973,9 @@
                 
                 if (currentDataA.length === 0 || currentDataB.length === 0) return;
                 
-                // Calculate density for current datasets
-                const densityA = kernelDensityEstimation(currentDataA, bandwidth, 30);
-                const densityB = kernelDensityEstimation(currentDataB, bandwidth, 30);
+                // Calculate density for current datasets using actual scale domains (after .nice())
+                const densityA = kernelDensityEstimation(currentDataA, bandwidth, 30, actualXDomain, actualYDomain);
+                const densityB = kernelDensityEstimation(currentDataB, bandwidth, 30, actualXDomain, actualYDomain);
                 
                 // Check if D3 contours is available, fallback to circles if not
                 if (typeof d3.contours === 'function') {
