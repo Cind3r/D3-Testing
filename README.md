@@ -18,9 +18,10 @@ The datasets are by default mirrored against each other so that it is easier to 
 
 - The button allows the user to overlay the data (opaque, stacked) rather than have the datasets mirrored across the x-axis.
 - Clicking on a histogram bar will highlight the corresponding points on the scatter plot as well as the clicked bin
-  - behavior persists through changing axis
+  - behavior persists through changing axis, will reset when data is changed
 - shape plots color in contours on top of each other
   - slider adjusts opacity of which dataset you want to see more
-- density plot updates showing where the points are mainly concentrated data-wise on both x/y axis ratehr than the histogram which only displays by the y-axis
+- density plot updates showing where the points are concentrated data-wise on both x/y axis rather than the histogram which only displays by the y-axis
   - animated the show the change in data from one dataset to the other
+  - slider adjusts the number of density rings, rings are bounded by the axes
     
