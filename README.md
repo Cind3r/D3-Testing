@@ -25,3 +25,12 @@ The datasets are by default mirrored against each other so that it is easier to 
   - animated the show the change in data from one dataset to the other
   - slider adjusts the number of density rings, rings are bounded by the axes
     
+#### D3 Interaction Study
+
+The second D3 assignment given that focuses on build a story using data. Uses data gather from a hospital in NC for pricing purposes, then begins a narrative story on health care pricing as well as projected costs. 
+- Sections use 'sticky-scrolling' meaning after enough scrolling, it will auto push you to 100 VH/VW for the next section
+  - This ensures that the entire plot/visualization is in full view before animating 
+- Hovering over datapoints on the second plot will tell you the specific proceedure and cost
+- Time gated animations for impact
+- Globe animation and ticker counter animation to show the increase in prices dramatically
+  - Clicking on a colored country on the globe will display the average price for that country in a tool-tip  
